@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Home, MapPin, MessageCircle, PawPrint } from 'lucide-react';
+import { Home, Leaf, MapPin, MessageCircle, PawPrint } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
 
@@ -13,11 +13,20 @@ export const Navbar = () => {
     ['/report', 'Full report']
   ];
   return (
-    <header className="border-b border-gray-100 bg-white">
+    <header className="border-b border-gray-100 bg-white/95 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link to="/" className="text-lg font-medium text-green-900">RescueLink</Link>
-        <div className="hidden items-center gap-6 text-sm text-gray-600 sm:flex">
-          {links.map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}
+        <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-green-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-green-800">
+            <Leaf className="h-4 w-4" />
+          </span>
+          RescueLink
+        </Link>
+        <div className="hidden items-center gap-1 text-sm text-gray-600 sm:flex">
+          {links.map(([to, label]) => (
+            <Link key={to} to={to} className="rounded-lg px-3 py-2 transition hover:bg-green-50 hover:text-green-900">
+              {label}
+            </Link>
+          ))}
         </div>
         <div className="flex items-center gap-2">
           {user ? <Button variant="secondary" onClick={logout}>Logout</Button> : <Link to="/login"><Button variant="secondary">Login</Button></Link>}
