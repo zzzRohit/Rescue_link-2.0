@@ -1,1 +1,16 @@
-export const animals = ['Squirrel', 'Pigeon', 'Rabbit', 'Crow', 'Deer', 'Mongoose', 'Owl', 'Bat', 'Snake', 'Monitor Lizard', 'Other'];
+export const animals = [
+  'Elephant',
+  'Tiger',
+  'Leopard',
+  'Deer',
+  'Bear',
+  'Wild Boar',
+  'Bison',
+  'Monkey',
+  'Peacock',
+  'Eagle',
+  'Snake',
+  'Crocodile',
+  'Monitor Lizard',
+  'Other'
+];

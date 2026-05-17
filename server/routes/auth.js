@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  checkAdminSession,
   getMe,
   getPendingRescuers,
   login,
@@ -14,6 +15,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/rescuer/login', rescuerLogin);
 router.get('/me', verifyToken, getMe);
+router.post('/admin/session', checkAdminSession);
 router.post('/admin/verify-rescuer', verifyRescuer);
 router.get('/admin/pending-rescuers', getPendingRescuers);
 export default router;

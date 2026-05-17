@@ -19,15 +19,17 @@ const distanceKm = (aLat, aLng, bLat, bLng) => {
 
 export const findNearestRescuer = async (incident) => {
   const city = incident.location?.city;
-  if (!city) return null;
   const specialty = animalSpecialty(incident.animalType);
-  const rescuers = await Rescuer.find({
+  const query = {
     type: 'platform',
-    city,
     available: true,
     verified: true,
     $or: [{ specialties: specialty }, { specialties: 'all' }]
-  }).select('-password');
+  };
+  if (city) query.city = city;
+  if (!city && (typeof incident.location?.lat !== 'number' || typeof incident.location?.lng !== 'number')) return null;
+
+  const rescuers = await Rescuer.find(query).select('-password');
 
   return rescuers
     .map((rescuer) => ({

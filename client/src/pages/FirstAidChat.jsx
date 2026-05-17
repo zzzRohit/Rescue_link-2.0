@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUp, PawPrint } from 'lucide-react';
+import { animals } from '../constants/animals';
 import { useChat } from '../hooks/useChat';
 
-const animals = ['Squirrel', 'Pigeon', 'Sparrow', 'Crow', 'Rabbit', 'Monkey', 'Peacock', 'Owl', 'Deer', 'Mongoose', 'Bat', 'Snake', 'Monitor Lizard', 'Other'];
 const situations = ['Injured / bleeding', 'Not moving', 'Baby animal', 'Trapped', 'Just found it'];
 const defaultChips = ['Show me step-by-step', 'Can I feed it?', 'Find a rescuer near me'];
 
 export default function FirstAidChat() {
   const navigate = useNavigate();
-  const [animal, setAnimal] = useState('Squirrel');
+  const [animal, setAnimal] = useState(animals[0]);
   const [selectedSituations, setSelectedSituations] = useState([]);
   const [input, setInput] = useState('');
   const { messages, isLoading, send } = useChat({ animal: animal.toLowerCase(), situationChips: selectedSituations });

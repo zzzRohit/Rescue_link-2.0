@@ -22,6 +22,7 @@ export const initSocket = (io) => {
 
   io.on('connection', (socket) => {
     if (socket.user?.role === 'rescuer' && socket.user.city) socket.join(socket.user.city);
+    if (socket.user?.role === 'rescuer' && socket.user._id) socket.join(`rescuer:${socket.user._id}`);
     if (socket.user?._id) socket.join(`user:${socket.user._id}`);
   });
 };

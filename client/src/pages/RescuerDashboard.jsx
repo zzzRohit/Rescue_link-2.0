@@ -3,6 +3,7 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { IncidentCard } from '../components/incident/IncidentCard';
 import { IncidentMap } from '../components/map/IncidentMap';
 import { NotificationToast } from '../components/rescuer/NotificationToast';
+import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -38,7 +39,10 @@ export default function RescuerDashboard() {
       <Sidebar available={user.available} onToggle={toggle} />
       <main className="min-h-screen flex-1 bg-[#f8faf7] p-4 md:p-8">
         <NotificationToast incident={toast} onClose={() => setToast(null)} />
-        <h1 className="text-3xl font-medium">Rescuer dashboard</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-medium">Rescuer dashboard</h1>
+          {user.verified && <Badge className="bg-green-100 text-green-700">Verified rescuer</Badge>}
+        </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><b>{stats.rescued}</b><p className="text-sm text-gray-500">Today's rescues</p></div>
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><b>{stats.active}</b><p className="text-sm text-gray-500">Active incidents</p></div>

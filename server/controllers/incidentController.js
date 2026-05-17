@@ -31,14 +31,17 @@ export const createIncident = async (req, res, next) => {
     await incident.save();
     await incident.populate('assignedRescuer', 'name phone specialties city');
 
-    req.app.get('io')?.to(incident.location?.city || '').emit('new_incident', {
+    const payload = {
       incidentId: incident._id,
       animalType: incident.animalType,
       emergencyCategory: incident.emergencyCategory,
       severity: incident.aiAnalysis?.severity || 'moderate',
       address: incident.location?.address,
       assignedRescuerId: incident.assignedRescuer?._id
-    });
+    };
+    const io = req.app.get('io');
+    io?.to(incident.location?.city || '').emit('new_incident', payload);
+    if (incident.assignedRescuer?._id) io?.to(`rescuer:${incident.assignedRescuer._id}`).emit('new_incident', payload);
 
     res.status(201).json(incident);
   } catch (err) {
@@ -64,7 +67,7 @@ export const createQuickIncident = async (req, res, next) => {
     if (rescuer) incident.assignedRescuer = rescuer._id;
     await incident.save();
 
-    req.app.get('io')?.to(incident.location?.city || '').emit('new_incident', {
+    const payload = {
       incidentId: incident._id,
       animalType: incident.animalType,
       emergencyCategory: incident.emergencyCategory,
@@ -72,7 +75,10 @@ export const createQuickIncident = async (req, res, next) => {
       address: incident.location?.address,
       source: 'quick_report',
       assignedRescuerId: incident.assignedRescuer
-    });
+    };
+    const io = req.app.get('io');
+    io?.to(incident.location?.city || '').emit('new_incident', payload);
+    if (incident.assignedRescuer) io?.to(`rescuer:${incident.assignedRescuer}`).emit('new_incident', payload);
 
     res.status(201).json({ incidentId: incident._id, message: 'Report received' });
   } catch (err) {
@@ -84,7 +90,13 @@ export const getIncidents = async (req, res, next) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Authentication required' });
     const query = {};
-    if (req.user?.role === 'rescuer') query['location.city'] = req.user.city;
+    if (req.user?.role === 'rescuer') {
+      if (!req.user.verified) return res.status(403).json({ error: 'pending_verification', message: 'Your account is pending admin verification.' });
+      query.$or = [
+        { assignedRescuer: req.user._id }
+      ];
+      if (req.user.city) query.$or.push({ 'location.city': req.user.city });
+    }
     if (req.user?.role === 'citizen') {
       if (req.query.userId && String(req.query.userId) !== String(req.user._id)) {
         return res.status(403).json({ message: 'Access denied' });

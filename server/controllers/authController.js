@@ -14,15 +14,18 @@ export const register = async (req, res, next) => {
     const { name, email, password, role, phone, specialties, city, lat, lng } = req.body;
 
     if (role === 'rescuer') {
+      if (!city && (typeof lat !== 'number' || typeof lng !== 'number')) {
+        return res.status(400).json({ message: 'Enter a city or use your current location.' });
+      }
       const rescuer = await Rescuer.create({
         name,
         email,
         password,
         phone,
-        city,
+        city: city ? String(city).toLowerCase().trim() : undefined,
         specialties: specialties?.length ? specialties : ['all'],
-        lat,
-        lng,
+        lat: typeof lat === 'number' ? lat : undefined,
+        lng: typeof lng === 'number' ? lng : undefined,
         type: 'platform',
         verified: false
       });
@@ -85,6 +88,11 @@ const verifyAdminKey = (req, res) => {
   return true;
 };
 
+export const checkAdminSession = (req, res) => {
+  if (!verifyAdminKey(req, res)) return;
+  res.json({ ok: true });
+};
+
 export const verifyRescuer = async (req, res, next) => {
   try {
     if (!verifyAdminKey(req, res)) return;
@@ -103,7 +111,6 @@ export const verifyRescuer = async (req, res, next) => {
 
 export const getPendingRescuers = async (req, res, next) => {
   try {
-    if (!verifyAdminKey(req, res)) return;
     const rescuers = await Rescuer.find({ type: 'platform', verified: false })
       .select('-password')
       .sort({ createdAt: -1 });

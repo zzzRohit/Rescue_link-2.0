@@ -14,20 +14,22 @@ import Register from './pages/Register';
 import PendingVerification from './pages/PendingVerification';
 import FindRescuer from './pages/FindRescuer';
 import FirstAidChat from './pages/FirstAidChat';
+import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 
-const ProtectedRoute = ({ role, children }) => {
+const ProtectedRoute = ({ role, verified, children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (verified && !user.verified) return <Navigate to="/rescuer/pending-verification" replace />;
   return children;
 };
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/rescuer/dashboard" element={<ProtectedRoute role="rescuer"><RescuerDashboard /></ProtectedRoute>} />
+      <Route path="/rescuer/dashboard" element={<ProtectedRoute role="rescuer" verified><RescuerDashboard /></ProtectedRoute>} />
       <Route path="*" element={<Shell />} />
     </Routes>
   );
@@ -51,6 +53,7 @@ function Shell() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/rescuer/pending-verification" element={<PendingVerification />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

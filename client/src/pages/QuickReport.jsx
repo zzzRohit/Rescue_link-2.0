@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Baby, Camera, Check, MapPin, Route, ShieldAlert, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { animals } from '../constants/animals';
 import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import { api } from '../services/api';
 
-const animals = ['Squirrel', 'Pigeon', 'Crow', 'Monkey', 'Peacock', 'Snake', 'Deer', 'Other'];
 const categories = [
   ['injured', 'Injured', ShieldAlert],
   ['trapped', 'Trapped', Route],
