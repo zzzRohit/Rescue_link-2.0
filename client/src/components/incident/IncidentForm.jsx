@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { animals } from '../../constants/animals';
 import { emergencyCategories } from '../../constants/emergencyCategories';
 import { api } from '../../services/api';
+import { getAnimalRoutingCopy } from '../../utils/animalRouting';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { Button } from '../ui/Button';
 import { ImageUploader } from './ImageUploader';
@@ -16,6 +17,7 @@ export const IncidentForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ animalType: '', emergencyCategory: '', description: '', images: [], location: {}, reportedBy: {} });
+  const routingCopy = getAnimalRoutingCopy(form.animalType);
 
   const update = (patch) => setForm((current) => ({ ...current, ...patch }));
   const submit = async () => {
@@ -38,7 +40,19 @@ export const IncidentForm = () => {
         <div className="space-y-5">
           <div>
             <label className="text-sm font-medium">Animal type</label>
+            <input
+              className={`${inputClass} mt-3`}
+              placeholder="Type animal, e.g. dog, cat, snake"
+              value={form.animalType}
+              onChange={(e) => update({ animalType: e.target.value })}
+            />
             <div className="mt-3 flex flex-wrap gap-2">{animals.map((animal) => <button key={animal} onClick={() => update({ animalType: animal })} className={`rounded-full border px-3 py-1.5 text-sm ${form.animalType === animal ? 'border-green-600 bg-green-50 text-green-800' : 'border-gray-200'}`}>{animal}</button>)}</div>
+            {routingCopy && (
+              <div className={`mt-3 rounded-lg border p-3 text-sm ${routingCopy.tone === 'amber' ? 'border-amber-100 bg-amber-50 text-amber-800' : 'border-green-100 bg-green-50 text-green-800'}`}>
+                <p className="font-medium">{routingCopy.title}</p>
+                <p className="mt-1">{routingCopy.text}</p>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium">Emergency category</label>
@@ -63,6 +77,12 @@ export const IncidentForm = () => {
             <p className="mt-2 text-gray-600">{form.description}</p>
             <p className="mt-2 text-gray-500">{form.location.address || form.location.city}</p>
           </div>
+          {routingCopy && (
+            <div className={`rounded-lg border p-3 ${routingCopy.tone === 'amber' ? 'border-amber-100 bg-amber-50 text-amber-800' : 'border-green-100 bg-green-50 text-green-800'}`}>
+              <p className="font-medium">{routingCopy.title}</p>
+              <p className="mt-1">{routingCopy.text}</p>
+            </div>
+          )}
           <input className={inputClass} placeholder="Your name (optional)" onChange={(e) => update({ reportedBy: { ...form.reportedBy, name: e.target.value } })} />
           <input className={inputClass} placeholder="Phone (optional)" onChange={(e) => update({ reportedBy: { ...form.reportedBy, phone: e.target.value } })} />
         </div>

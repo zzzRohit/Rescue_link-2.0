@@ -47,8 +47,8 @@ const actions = [
   },
   {
     to: '/rescuer',
-    title: 'Find a rescuer',
-    text: 'View local contacts who can respond.',
+    title: 'Find rescue support',
+    text: 'View animal rescuers, NGO volunteers, veterinary contacts, and specialists.',
     Icon: Phone
   }
 ];
@@ -72,13 +72,13 @@ export default function Landing() {
       <section className="grid gap-8 py-6 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:py-12">
         <div>
           <p className="inline-flex items-center rounded-full border border-green-100 bg-green-50 px-3 py-1 text-xs font-medium text-green-800">
-            Wildlife emergency response platform
+            Animal rescue response platform
           </p>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-normal text-gray-950 sm:text-5xl">
-            Report wildlife emergencies clearly and quickly.
+            Report animal emergencies quickly and safely.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-gray-600">
-            RescueLink helps citizens report injured or distressed animals, receive first-aid guidance, and connect with verified rescuers.
+            RescueLink helps citizens report injured, stranded, or distressed animals, receive first-aid guidance, and connect with verified rescuers nearby.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -114,7 +114,7 @@ export default function Landing() {
           </div>
 
           <div className="space-y-3 border-t border-gray-100 pt-5">
-            {['Quick incident logging', 'AI-assisted triage', 'Verified rescuer matching'].map((item) => (
+            {['Quick animal emergency logging', 'AI-assisted rescue triage', 'Verified rescuer matching'].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-green-700" />
                 {item}

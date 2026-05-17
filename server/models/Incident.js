@@ -8,6 +8,13 @@ const aiAnalysisSchema = new mongoose.Schema({
   rawResponse: String
 }, { _id: false });
 
+const authorityContactSchema = new mongoose.Schema({
+  name: String,
+  phone: String,
+  type: { type: String, enum: ['government', 'ngo', 'emergency'] },
+  coverage: String
+}, { _id: false });
+
 const incidentSchema = new mongoose.Schema({
   animalType: { type: String, required: true, trim: true },
   emergencyCategory: {
@@ -37,6 +44,8 @@ const incidentSchema = new mongoose.Schema({
   },
   rescueProofImage: String,
   rescuerNotes: String,
+  routingType: { type: String, enum: ['local', 'authority'], default: 'local' },
+  authorityContacts: [authorityContactSchema],
   source: { type: String, enum: ['full_report', 'quick_report'], default: 'full_report' }
 }, { timestamps: true });
 

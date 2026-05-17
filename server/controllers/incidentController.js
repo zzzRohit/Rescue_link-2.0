@@ -1,7 +1,9 @@
 import Incident from '../models/Incident.js';
 import Rescuer from '../models/Rescuer.js';
 import { analyzeIncident } from '../services/aiService.js';
+import { classifyAnimal, getRoutingMessage } from '../services/animalRouting.js';
 import { findNearestRescuer } from '../services/matchRescuer.js';
+import { getWildlifeContacts } from '../data/wildlifeContacts.js';
 
 const statusOrder = ['pending', 'accepted', 'on_the_way', 'rescued', 'closed'];
 const validCloudinaryUrls = (urls = []) => urls.every((url) => /^https:\/\/res\.cloudinary\.com\//.test(url));
@@ -10,6 +12,8 @@ export const createIncident = async (req, res, next) => {
   try {
     const { animalType, emergencyCategory, description, images = [], location = {}, reportedBy = {} } = req.body;
     if (!validCloudinaryUrls(images)) return res.status(400).json({ message: 'Invalid image URL' });
+    const routingType = classifyAnimal(animalType);
+    const authorityContacts = routingType === 'authority' ? getWildlifeContacts(location.city) : [];
 
     const incident = await Incident.create({
       animalType,
@@ -17,7 +21,9 @@ export const createIncident = async (req, res, next) => {
       description,
       images,
       location: { ...location, city: location.city?.toLowerCase() },
-      reportedBy: { ...reportedBy, userId: req.user?._id }
+      reportedBy: { ...reportedBy, userId: req.user?._id },
+      routingType,
+      authorityContacts
     });
 
     try {
@@ -26,8 +32,10 @@ export const createIncident = async (req, res, next) => {
       incident.aiAnalysis = undefined;
     }
 
-    const rescuer = await findNearestRescuer(incident);
-    if (rescuer) incident.assignedRescuer = rescuer._id;
+    if (routingType === 'local') {
+      const rescuer = await findNearestRescuer(incident);
+      if (rescuer) incident.assignedRescuer = rescuer._id;
+    }
     await incident.save();
     await incident.populate('assignedRescuer', 'name phone specialties city');
 
@@ -37,13 +45,16 @@ export const createIncident = async (req, res, next) => {
       emergencyCategory: incident.emergencyCategory,
       severity: incident.aiAnalysis?.severity || 'moderate',
       address: incident.location?.address,
-      assignedRescuerId: incident.assignedRescuer?._id
+      assignedRescuerId: incident.assignedRescuer?._id,
+      routingType
     };
     const io = req.app.get('io');
-    io?.to(incident.location?.city || '').emit('new_incident', payload);
-    if (incident.assignedRescuer?._id) io?.to(`rescuer:${incident.assignedRescuer._id}`).emit('new_incident', payload);
+    if (routingType === 'local') {
+      io?.to(incident.location?.city || '').emit('new_incident', payload);
+      if (incident.assignedRescuer?._id) io?.to(`rescuer:${incident.assignedRescuer._id}`).emit('new_incident', payload);
+    }
 
-    res.status(201).json(incident);
+    res.status(201).json({ ...incident.toObject(), routingMessage: getRoutingMessage(routingType) });
   } catch (err) {
     next(err);
   }
@@ -52,6 +63,8 @@ export const createIncident = async (req, res, next) => {
 export const createQuickIncident = async (req, res, next) => {
   try {
     const { animalType, emergencyCategory, location = {}, imageUrl, phone } = req.body;
+    const routingType = classifyAnimal(animalType);
+    const authorityContacts = routingType === 'authority' ? getWildlifeContacts(location.city) : [];
 
     const incident = await Incident.create({
       animalType,
@@ -60,11 +73,15 @@ export const createQuickIncident = async (req, res, next) => {
       images: imageUrl ? [imageUrl] : [],
       location: { ...location, city: location.city?.toLowerCase() },
       reportedBy: { phone, userId: req.user?._id },
+      routingType,
+      authorityContacts,
       source: 'quick_report'
     });
 
-    const rescuer = await findNearestRescuer(incident);
-    if (rescuer) incident.assignedRescuer = rescuer._id;
+    if (routingType === 'local') {
+      const rescuer = await findNearestRescuer(incident);
+      if (rescuer) incident.assignedRescuer = rescuer._id;
+    }
     await incident.save();
 
     const payload = {
@@ -74,13 +91,22 @@ export const createQuickIncident = async (req, res, next) => {
       severity: 'moderate',
       address: incident.location?.address,
       source: 'quick_report',
-      assignedRescuerId: incident.assignedRescuer
+      assignedRescuerId: incident.assignedRescuer,
+      routingType
     };
     const io = req.app.get('io');
-    io?.to(incident.location?.city || '').emit('new_incident', payload);
-    if (incident.assignedRescuer) io?.to(`rescuer:${incident.assignedRescuer}`).emit('new_incident', payload);
+    if (routingType === 'local') {
+      io?.to(incident.location?.city || '').emit('new_incident', payload);
+      if (incident.assignedRescuer) io?.to(`rescuer:${incident.assignedRescuer}`).emit('new_incident', payload);
+    }
 
-    res.status(201).json({ incidentId: incident._id, message: 'Report received' });
+    res.status(201).json({
+      incidentId: incident._id,
+      routingType,
+      routingMessage: getRoutingMessage(routingType),
+      authorityContacts,
+      message: 'Report received'
+    });
   } catch (err) {
     next(err);
   }
@@ -92,6 +118,7 @@ export const getIncidents = async (req, res, next) => {
     const query = {};
     if (req.user?.role === 'rescuer') {
       if (!req.user.verified) return res.status(403).json({ error: 'pending_verification', message: 'Your account is pending admin verification.' });
+      query.routingType = { $ne: 'authority' };
       query.$or = [
         { assignedRescuer: req.user._id }
       ];
@@ -114,14 +141,17 @@ export const getIncidentById = async (req, res, next) => {
   try {
     const incident = await Incident.findById(req.params.id).populate('assignedRescuer', 'name phone specialties city');
     if (!incident) return res.status(404).json({ message: 'Incident not found' });
-    const nearbyRescuers = incident.location?.city
+    const nearbyRescuers = incident.routingType !== 'authority' && incident.location?.city
       ? await Rescuer.find({
         city: incident.location.city,
         type: 'contact',
         verified: true
       }).select('name phone whatsapp specialties available24hr address lat lng').limit(5)
       : [];
-    res.json({ incident, nearbyRescuers });
+    const authorityContacts = incident.routingType === 'authority'
+      ? incident.authorityContacts?.length ? incident.authorityContacts : getWildlifeContacts(incident.location?.city)
+      : [];
+    res.json({ incident, nearbyRescuers, authorityContacts });
   } catch (err) {
     next(err);
   }
@@ -131,6 +161,9 @@ export const updateStatus = async (req, res, next) => {
   try {
     const incident = await Incident.findById(req.params.id).populate('assignedRescuer', 'name');
     if (!incident) return res.status(404).json({ message: 'Incident not found' });
+    if (incident.routingType === 'authority') {
+      return res.status(400).json({ message: 'Authority incidents cannot be updated by local rescuers' });
+    }
     if (incident.assignedRescuer && String(incident.assignedRescuer._id) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Only assigned rescuer can update status' });
     }

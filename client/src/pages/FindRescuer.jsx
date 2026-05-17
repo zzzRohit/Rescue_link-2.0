@@ -6,10 +6,11 @@ import { AlertTriangle, MapPin, Phone, Search } from 'lucide-react';
 import { api } from '../services/api';
 
 const cities = ['bangalore', 'mysore', 'hubli', 'mangalore', 'bellary', 'davangere', 'shimoga'];
-const filters = ['all', 'mammals', 'birds', 'reptiles', 'snake rescue', '24hr only'];
+const filters = ['all', 'animal rescuer', 'ngo volunteer', 'veterinary support', 'wildlife specialist', 'emergency responder', '24hr only'];
 const nationalHelplines = [
-  { name: 'Wildlife SOS national', phone: '1800-200-9453' },
-  { name: 'Karnataka Forest Department', phone: '1800-425-9911' },
+  { name: 'Animal rescue helpline', phone: '112' },
+  { name: 'Wildlife SOS specialized rescue', phone: '1800-200-9453' },
+  { name: 'Authorized wildlife support', phone: '1800-425-9911' },
   { name: 'PETA India', phone: '1800-103-7382' }
 ];
 
@@ -84,7 +85,14 @@ export default function FindRescuer() {
 
   useEffect(() => {
     if (!city) return;
-    const specialty = activeFilter === 'snake rescue' ? 'reptiles' : activeFilter;
+    const specialtyMap = {
+      'animal rescuer': 'mammals',
+      'ngo volunteer': 'all',
+      'veterinary support': 'mammals',
+      'wildlife specialist': 'reptiles',
+      'emergency responder': 'all'
+    };
+    const specialty = specialtyMap[activeFilter] || activeFilter;
     const params = { city };
     if (!['all', '24hr only'].includes(specialty)) params.specialty = specialty;
     api.get('/api/rescuers', { params })
@@ -106,7 +114,7 @@ export default function FindRescuer() {
       <section className="mb-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium text-gray-950">Find a rescuer</h1>
+            <h1 className="text-2xl font-medium text-gray-950">Find animal rescue support</h1>
             <p className="mt-1 text-sm text-gray-500">{detectedText}</p>
           </div>
           {(locationDenied || !city) && (
@@ -147,7 +155,7 @@ export default function FindRescuer() {
 
       {city && visibleRescuers.length === 0 && (
         <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-700">
-          No local rescuers found for this filter. Use the helplines below or try another specialty.
+          No local rescue contacts found for this filter. Use the helplines below or try another category.
         </div>
       )}
 
@@ -180,7 +188,7 @@ export default function FindRescuer() {
       <section className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
-          <h2 className="text-sm font-medium text-gray-900">National helplines</h2>
+          <h2 className="text-sm font-medium text-gray-900">Animal rescue helplines</h2>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
           {nationalHelplines.map((helpline) => (
@@ -194,7 +202,7 @@ export default function FindRescuer() {
 
       <div className="mt-4 flex items-center gap-2 text-xs text-gray-400">
         <Search className="h-3.5 w-3.5" />
-        Contacts are shown for Karnataka coverage cities only.
+        Local contacts are shown for Karnataka coverage cities only.
       </div>
     </div>
   );

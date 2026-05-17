@@ -67,7 +67,7 @@ export default function FirstAidChat() {
 
         <div className="mt-auto space-y-3">
           <Link to="/rescuer" className="block rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-800">Can't handle this?</Link>
-          <p className="text-xs leading-5 text-gray-400">AI guidance only. Not a substitute for a wildlife professional.</p>
+          <p className="text-xs leading-5 text-gray-400">AI guidance only. Not a substitute for a veterinarian or trained animal rescue professional.</p>
         </div>
       </aside>
 
@@ -76,7 +76,7 @@ export default function FirstAidChat() {
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50 text-green-700"><PawPrint className="h-5 w-5" /></div>
             <div>
-              <h1 className="text-sm font-medium text-gray-950">Wildlife advisor</h1>
+              <h1 className="text-sm font-medium text-gray-950">Animal rescue advisor</h1>
               <p className="flex items-center gap-1 text-xs text-green-700"><span className="h-2 w-2 rounded-full bg-green-500" /> Online</p>
             </div>
           </div>
@@ -106,7 +106,7 @@ export default function FirstAidChat() {
         </div>
 
         <div className="border-t border-gray-100 bg-white p-3">
-          <p className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">⚠ AI guidance only — contact a wildlife professional for serious injuries</p>
+          <p className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">AI guidance only - contact a vet or trained animal rescuer for serious injuries</p>
           <form onSubmit={submit} className="flex items-center gap-2">
             <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Describe what happened..." className="min-w-0 flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-200" />
             <button disabled={!input.trim() || isLoading} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-600 text-white disabled:opacity-50">

@@ -8,7 +8,7 @@ export const Navbar = () => {
   const links = [
     ['/', 'Home'],
     ['/chat', 'First-aid chat'],
-    ['/rescuer', 'Find a rescuer'],
+    ['/rescuer', 'Find support'],
     ['/report/quick', 'Quick report'],
     ['/report', 'Full report']
   ];

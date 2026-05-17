@@ -5,13 +5,14 @@ import { Button } from '../components/ui/Button';
 import { animals } from '../constants/animals';
 import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import { api } from '../services/api';
+import { getAnimalRoutingCopy } from '../utils/animalRouting';
 
 const categories = [
   ['injured', 'Injured', ShieldAlert],
   ['trapped', 'Trapped', Route],
   ['orphaned', 'Baby alone', Baby],
   ['road_accident', 'Road', MapPin],
-  ['dangerous_sighting', 'Dangerous', ShieldAlert],
+  ['dangerous_sighting', 'High risk', ShieldAlert],
   ['abandoned', 'Just saw it', Check]
 ];
 
@@ -28,7 +29,8 @@ export default function QuickReport() {
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [successId, setSuccessId] = useState('');
+  const [result, setResult] = useState(null);
+  const routingCopy = getAnimalRoutingCopy(form.animalType);
 
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -78,7 +80,7 @@ export default function QuickReport() {
     setSubmitting(true);
     try {
       const { data } = await api.post('/api/incidents/quick', form);
-      setSuccessId(data.incidentId);
+      setResult(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Could not send report.');
     } finally {
@@ -86,17 +88,28 @@ export default function QuickReport() {
     }
   };
 
-  if (successId) {
+  if (result) {
+    const authority = result.routingType === 'authority';
     return (
       <div className="mx-auto max-w-[480px]">
-        <div className="rounded-xl border border-green-200 bg-green-50 p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-green-700"><Check className="h-6 w-6" /></div>
-          <h1 className="text-lg font-medium text-green-950">Report sent</h1>
-          <p className="mt-3 text-sm text-green-800">Nearby rescuers have been notified.</p>
-          <p className="mt-2 text-sm text-green-700">Incident ID: #{successId.slice(-6).toUpperCase()}</p>
+        <div className={`rounded-xl border p-8 text-center ${authority ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+          <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white ${authority ? 'text-amber-700' : 'text-green-700'}`}><Check className="h-6 w-6" /></div>
+          <h1 className={`text-lg font-medium ${authority ? 'text-amber-950' : 'text-green-950'}`}>Report sent</h1>
+          <p className={`mt-3 text-sm ${authority ? 'text-amber-800' : 'text-green-800'}`}>{result.routingMessage}</p>
+          <p className={`mt-2 text-sm ${authority ? 'text-amber-700' : 'text-green-700'}`}>Incident ID: #{result.incidentId.slice(-6).toUpperCase()}</p>
+          {authority && result.authorityContacts?.length > 0 && (
+            <div className="mt-5 space-y-2 text-left">
+              {result.authorityContacts.map((contact) => (
+                <a key={`${contact.name}-${contact.phone}`} href={`tel:${contact.phone}`} className="block rounded-lg border border-amber-100 bg-white p-3 text-sm">
+                  <span className="font-medium text-gray-950">{contact.name}</span>
+                  <span className="mt-1 block text-xs text-gray-500">{contact.phone} - {contact.coverage}</span>
+                </a>
+              ))}
+            </div>
+          )}
           <div className="mt-6 grid gap-2">
-            <Link to={`/incident/${successId}`}><Button className="w-full">Track this report</Button></Link>
-            <Button type="button" variant="secondary" className="w-full" onClick={() => { setSuccessId(''); setForm({ animalType: '', emergencyCategory: '', location: {}, imageUrl: '', phone: '' }); }}>Report another</Button>
+            <Link to={`/incident/${result.incidentId}`}><Button className="w-full">Track this report</Button></Link>
+            <Button type="button" variant="secondary" className="w-full" onClick={() => { setResult(null); setForm({ animalType: '', emergencyCategory: '', location: {}, imageUrl: '', phone: '' }); }}>Report another</Button>
           </div>
         </div>
       </div>
@@ -108,12 +121,18 @@ export default function QuickReport() {
       <Link to="/" className="text-sm text-green-700">Back to home</Link>
       <header className="mt-4">
         <h1 className="text-3xl font-medium text-gray-950">Quick report</h1>
-        <p className="mt-2 text-sm leading-6 text-gray-500">Spotted something? Log it in under 2 minutes. A rescuer will be notified.</p>
+        <p className="mt-2 text-sm leading-6 text-gray-500">Spotted something? Log it in under 2 minutes. RescueLink will route it to the right response.</p>
       </header>
 
       <form onSubmit={submit} className="mt-6 space-y-6">
         <section>
           <label className="text-sm font-medium">Animal type</label>
+          <input
+            className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-200"
+            placeholder="Type animal, e.g. dog, cat, snake"
+            value={form.animalType}
+            onChange={(e) => set('animalType', e.target.value)}
+          />
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {animals.map((animal) => (
               <button key={animal} type="button" onClick={() => set('animalType', animal)} className={`shrink-0 rounded-full border px-3 py-2 text-sm ${form.animalType === animal ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-600'}`}>
@@ -121,6 +140,12 @@ export default function QuickReport() {
               </button>
             ))}
           </div>
+          {routingCopy && (
+            <div className={`mt-3 rounded-lg border p-3 text-sm ${routingCopy.tone === 'amber' ? 'border-amber-100 bg-amber-50 text-amber-800' : 'border-green-100 bg-green-50 text-green-800'}`}>
+              <p className="font-medium">{routingCopy.title}</p>
+              <p className="mt-1">{routingCopy.text}</p>
+            </div>
+          )}
         </section>
 
         <section>

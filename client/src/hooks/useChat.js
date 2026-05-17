@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 const initialMessage = {
   role: 'assistant',
-  content: "Hi! Tell me about the animal you found and what's happening.\nI'll guide you on exactly what to do right now.",
+  content: "Hi! Tell me about the animal you found and what's happening.\nI'll guide you on what to do safely right now.",
   chips: ['Show me step-by-step', 'Can I feed it?', 'Find a rescuer near me']
 };
 

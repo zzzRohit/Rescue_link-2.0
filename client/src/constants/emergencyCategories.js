@@ -5,5 +5,5 @@ export const emergencyCategories = [
   { id: 'road_accident', label: 'Road Accident', icon: 'Car' },
   { id: 'bleeding', label: 'Bleeding', icon: 'Droplet' },
   { id: 'abandoned', label: 'Abandoned', icon: 'Home' },
-  { id: 'dangerous_sighting', label: 'Dangerous Sighting', icon: 'AlertTriangle' }
+  { id: 'dangerous_sighting', label: 'High-Risk Sighting', icon: 'AlertTriangle' }
 ];

@@ -8,7 +8,7 @@ export const AIAnalysisPanel = ({ analysis, loading }) => {
     return (
       <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <h3 className="font-medium">AI analysis unavailable</h3>
-        <p className="mt-2 text-sm text-gray-500">The incident was saved and rescuers can still respond.</p>
+        <p className="mt-2 text-sm text-gray-500">The animal rescue incident was saved and responders can still review it.</p>
       </div>
     );
   }
@@ -27,7 +27,7 @@ export const AIAnalysisPanel = ({ analysis, loading }) => {
       <ul className="mt-4 space-y-2 text-sm text-gray-600">
         {analysis.firstAidSteps?.map((step) => <li key={step}>• {step}</li>)}
       </ul>
-      <div className="mt-4"><DisclaimerBanner>This is AI analysis. A verified rescuer has been notified.</DisclaimerBanner></div>
+      <div className="mt-4"><DisclaimerBanner>This is AI analysis. Follow the selected rescue route and contact trained support for urgent cases.</DisclaimerBanner></div>
     </div>
   );
 };
