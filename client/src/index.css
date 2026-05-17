@@ -5,5 +5,5 @@
 @tailwind utilities;
 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Inter, sans-serif; background: #f8faf7; color: #111827; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #fafaf9; color: #0f172a; }
 a { color: inherit; text-decoration: none; }
