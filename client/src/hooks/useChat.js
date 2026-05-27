@@ -13,9 +13,10 @@ export const useChat = ({ animal, situationChips }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const send = useCallback(async (content) => {
+  const send = useCallback(async (content, imageUrls = []) => {
     const trimmed = content.trim();
-    if (!trimmed || isLoading) return;
+    if ((!trimmed && !imageUrls.length) || isLoading) return;
+    const displayText = trimmed || 'Please review this photo and guide me.';
 
     const history = messages
       .filter((message) => !message.streaming)
@@ -26,7 +27,7 @@ export const useChat = ({ animal, situationChips }) => {
     setIsLoading(true);
     setMessages((current) => [
       ...current,
-      { role: 'user', content: trimmed },
+      { role: 'user', content: displayText, images: imageUrls },
       { role: 'assistant', content: '', streaming: true, chips: [] }
     ]);
 
@@ -34,7 +35,7 @@ export const useChat = ({ animal, situationChips }) => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed, animal, situationChips, conversationHistory: history })
+        body: JSON.stringify({ message: displayText, animal, situationChips, conversationHistory: history, imageUrls })
       });
 
       if (!response.ok || !response.body) throw new Error('Chat failed');

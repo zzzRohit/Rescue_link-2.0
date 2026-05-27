@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { AlertTriangle, MapPin, Phone, Search } from 'lucide-react';
 import { api } from '../services/api';
 
-const cities = ['bangalore', 'mysore', 'hubli', 'mangalore', 'bellary', 'davangere', 'shimoga'];
+const cities = ['bangalore', 'mysore', 'hubli', 'dharwad', 'mangalore', 'bellary', 'davangere', 'shimoga'];
 const filters = ['all', 'animal rescuer', 'ngo volunteer', 'veterinary support', 'wildlife specialist', 'emergency responder', '24hr only'];
 const nationalHelplines = [
   { name: 'Animal rescue helpline', phone: '112' },
@@ -22,6 +22,11 @@ const normalizeCity = (city = '') => {
     mangaluru: 'mangalore',
     shivamogga: 'shimoga',
     hubballi: 'hubli',
+    dharwad: 'hubli',
+    'hubli dharwad': 'hubli',
+    'hubli-dharwad': 'hubli',
+    'hubballi dharwad': 'hubli',
+    'hubballi-dharwad': 'hubli',
     ballari: 'bellary'
   };
   return aliases[value] || value;
@@ -37,8 +42,9 @@ const pin = (available24hr) => L.divIcon({
 function FitMap({ rescuers }) {
   const map = useMap();
   useEffect(() => {
-    if (!rescuers.length) return;
-    const bounds = L.latLngBounds(rescuers.map((rescuer) => [rescuer.lat, rescuer.lng]));
+    const mappedRescuers = rescuers.filter((rescuer) => Number.isFinite(rescuer.lat) && Number.isFinite(rescuer.lng));
+    if (!mappedRescuers.length) return;
+    const bounds = L.latLngBounds(mappedRescuers.map((rescuer) => [rescuer.lat, rescuer.lng]));
     map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
   }, [map, rescuers]);
   return null;
@@ -107,7 +113,8 @@ export default function FindRescuer() {
     return [...list].sort((a, b) => Number(b.available24hr) - Number(a.available24hr) || a.name.localeCompare(b.name));
   }, [rescuers, activeFilter]);
 
-  const center = visibleRescuers[0] ? [visibleRescuers[0].lat, visibleRescuers[0].lng] : [12.9716, 77.5946];
+  const mappedRescuers = visibleRescuers.filter((rescuer) => Number.isFinite(rescuer.lat) && Number.isFinite(rescuer.lng));
+  const center = mappedRescuers[0] ? [mappedRescuers[0].lat, mappedRescuers[0].lng] : [12.9716, 77.5946];
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -131,7 +138,7 @@ export default function FindRescuer() {
           <MapContainer center={center} zoom={12} className="h-[200px] w-full md:h-[260px]" scrollWheelZoom={false}>
             <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <FitMap rescuers={visibleRescuers} />
-            {visibleRescuers.map((rescuer) => (
+            {mappedRescuers.map((rescuer) => (
               <Marker key={rescuer._id} position={[rescuer.lat, rescuer.lng]} icon={pin(rescuer.available24hr)} eventHandlers={{ click: () => setSelectedId(rescuer._id) }}>
                 <Popup>{rescuer.name}</Popup>
               </Marker>

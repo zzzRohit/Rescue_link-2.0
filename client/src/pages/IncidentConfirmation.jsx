@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { Copy } from 'lucide-react';
 import { AuthorityContacts } from '../components/incident/AuthorityContacts';
 import { SeverityBadge } from '../components/incident/SeverityBadge';
 import { Button } from '../components/ui/Button';
@@ -22,6 +23,7 @@ export default function IncidentConfirmation() {
 
   if (!incident) return null;
   const aiAnalysis = incident.aiAnalysis;
+  const copyIncidentId = () => navigator.clipboard?.writeText(incident._id);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -32,7 +34,16 @@ export default function IncidentConfirmation() {
           </div>
           <h1 className="text-lg font-medium">Your report has been received</h1>
         </div>
-        <p className="text-sm text-gray-400">Incident ID: {incident._id}</p>
+        <div className="mt-3 rounded-lg border border-green-100 bg-green-50 p-3">
+          <p className="text-xs font-medium uppercase text-green-700">Incident ID</p>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="break-all text-sm font-medium text-gray-950">{incident._id}</span>
+            <button type="button" onClick={copyIncidentId} className="shrink-0 rounded-lg border border-green-200 bg-white p-2 text-green-800 hover:bg-green-50" aria-label="Copy incident ID">
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-green-800">If you are not signed in, please copy this ID to track this incident later.</p>
+        </div>
         <p className="text-sm text-gray-500 mt-2">{incident.routingType === 'authority' ? 'This case requires specialized rescue handling.' : 'Save this link to track your report.'}</p>
       </div>
 

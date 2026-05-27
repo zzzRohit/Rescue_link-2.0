@@ -1,6 +1,10 @@
 import { CHAT_SYSTEM_PROMPT } from '../prompts/chatSystemPrompt.js';
 
 const defaultChips = ['Show me step-by-step', 'Can I feed it?', 'Find a rescuer near me'];
+const fallbackModel = 'google/gemini-2.0-flash-001';
+const normalizeModel = (model) => (
+  model === 'google/gemini-flash-latest' ? fallbackModel : model
+);
 
 const cleanHistory = (history = []) => history
   .filter((message) => ['user', 'assistant'].includes(message.role) && message.content)
@@ -33,13 +37,19 @@ export const chat = async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
 
-  const { message, animal, situationChips = [], conversationHistory = [] } = req.body;
+  const { message, animal, situationChips = [], conversationHistory = [], imageUrls = [] } = req.body;
   const animalLabel = animal ? animal[0].toUpperCase() + animal.slice(1) : 'Not selected';
   const contextMessage = `[Animal: ${animalLabel} | Situation: ${situationChips.join(', ') || 'Not specified'}]\n\n${message}`;
+  const userContent = imageUrls.length
+    ? [
+        ...imageUrls.slice(0, 3).map((url) => ({ type: 'image_url', image_url: { url } })),
+        { type: 'text', text: contextMessage }
+      ]
+    : contextMessage;
   const messages = [
     { role: 'system', content: CHAT_SYSTEM_PROMPT },
     ...cleanHistory(conversationHistory),
-    { role: 'user', content: contextMessage }
+    { role: 'user', content: userContent }
   ];
 
   try {
@@ -50,7 +60,7 @@ export const chat = async (req, res) => {
       return res.end();
     }
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const requestOpenRouter = (model) => fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -59,7 +69,7 @@ export const chat = async (req, res) => {
         'X-Title': 'RescueLink'
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5',
+        model,
         messages,
         max_tokens: 500,
         temperature: 0.3,
@@ -67,7 +77,17 @@ export const chat = async (req, res) => {
       })
     });
 
+    const configuredModel = normalizeModel(process.env.OPENROUTER_MODEL || fallbackModel);
+    let response = await requestOpenRouter(configuredModel);
+    if (!response.ok && configuredModel !== fallbackModel) {
+      const errText = await response.text();
+      console.error(`OpenRouter chat error for ${configuredModel}:`, errText);
+      response = await requestOpenRouter(fallbackModel);
+    }
+
     if (!response.ok || !response.body) {
+      const errText = await response.text().catch(() => '');
+      if (errText) console.error(`OpenRouter chat error for ${fallbackModel}:`, errText);
       sendEvent(res, { error: 'Something went wrong. Try again.' });
       return res.end();
     }
@@ -102,7 +122,8 @@ export const chat = async (req, res) => {
     const { chips } = parseChips(fullText);
     sendEvent(res, { done: true, chips });
     res.end();
-  } catch {
+  } catch (err) {
+    console.error('Chat failed:', err.message);
     sendEvent(res, { error: 'Something went wrong. Try again.' });
     res.end();
   }

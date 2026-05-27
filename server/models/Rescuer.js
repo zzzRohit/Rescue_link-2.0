@@ -6,7 +6,11 @@ const RescuerSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   whatsapp: { type: String },
   city: { type: String, lowercase: true, trim: true },
-  specialties: { type: [String], enum: ['mammals', 'birds', 'reptiles', 'all'], default: ['all'] },
+  specialties: {
+    type: [String],
+    enum: ['dogs', 'cats', 'cattle', 'small_pets', 'birds', 'reptiles', 'wildlife', 'primates', 'bats', 'mammals', 'all'],
+    default: ['all']
+  },
   available24hr: { type: Boolean, default: false },
   lat: { type: Number },
   lng: { type: Number },

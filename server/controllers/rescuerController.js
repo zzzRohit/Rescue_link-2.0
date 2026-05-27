@@ -1,37 +1,22 @@
 import Rescuer from '../models/Rescuer.js';
-
-const normalizeCity = (city) => {
-  const cityNorm = String(city).toLowerCase().trim();
-  const cityAliases = {
-    bengaluru: 'bangalore',
-    bengalore: 'bangalore',
-    bombay: 'mumbai',
-    'new delhi': 'delhi',
-    madras: 'chennai',
-    hyderabad: 'hyderabad',
-    bengaluru: 'bangalore',
-    mysuru: 'mysore',
-    mangaluru: 'mangalore',
-    shivamogga: 'shimoga',
-    hubballi: 'hubli',
-    ballari: 'bellary'
-  };
-  return cityAliases[cityNorm] || cityNorm;
-};
+import { normalizeCity, serviceAreaCities } from '../utils/city.js';
 
 export const getRescuers = async (req, res) => {
   try {
     const { city, specialty } = req.query;
-    const query = { type: 'contact', verified: true };
+    const query = { verified: true };
 
-    if (city) query.city = normalizeCity(city);
+    if (city) query.city = { $in: serviceAreaCities(city) };
     if (specialty && specialty !== 'all') query.specialties = { $in: [specialty, 'all'] };
 
     const rescuers = await Rescuer.find(query)
       .select('name phone whatsapp specialties available24hr address lat lng city')
       .sort({ available24hr: -1, name: 1 });
 
-    res.json(rescuers);
+    res.json(rescuers.map((rescuer) => {
+      const item = rescuer.toObject();
+      return { ...item, address: item.address || item.city || 'Local rescuer' };
+    }));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,8 +24,8 @@ export const getRescuers = async (req, res) => {
 
 export const getCities = async (_req, res, next) => {
   try {
-    const cities = await Rescuer.distinct('city', { type: 'contact', verified: true });
-    res.json(cities);
+    const cities = await Rescuer.distinct('city', { verified: true });
+    res.json([...new Set(cities.filter(Boolean).map(normalizeCity))]);
   } catch (err) {
     next(err);
   }

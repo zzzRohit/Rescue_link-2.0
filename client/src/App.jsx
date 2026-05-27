@@ -16,6 +16,7 @@ import FindRescuer from "./pages/FindRescuer";
 import FirstAidChat from "./pages/FirstAidChat";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import TrackIncident from "./pages/TrackIncident";
 
 const ProtectedRoute = ({ role, verified, children }) => {
   const { user, loading } = useAuth();
@@ -55,11 +56,19 @@ function Shell() {
           <Route path="/report/quick" element={<QuickReport />} />
           <Route path="/rescuer" element={<FindRescuer />} />
           <Route path="/rescuers" element={<FindRescuer />} />
+          <Route path="/track" element={<TrackIncident />} />
           <Route
             path="/incident/:id/confirmation"
             element={<IncidentConfirmation />}
           />
-          <Route path="/citizen/incidents" element={<CitizenDashboard />} />
+          <Route
+            path="/citizen/incidents"
+            element={
+              <ProtectedRoute role="citizen">
+                <CitizenDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/incident/:id" element={<IncidentDetailPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

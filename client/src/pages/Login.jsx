@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
@@ -6,10 +6,16 @@ import { useAuth } from '../hooks/useAuth';
 const input = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-200';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { user, loading, login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '', role: 'citizen' });
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (loading || !user) return;
+    navigate(user.role === 'rescuer' ? '/rescuer/dashboard' : '/citizen/incidents', { replace: true });
+  }, [loading, navigate, user]);
+
   const submit = async (e) => {
     e.preventDefault();
     try {
@@ -23,6 +29,8 @@ export default function Login() {
       setError(err.response?.data?.message || 'Invalid email or password');
     }
   };
+  if (loading || user) return null;
+
   return (
     <form onSubmit={submit} className="mx-auto max-w-md rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
       <h1 className="text-2xl font-medium">Login</h1>

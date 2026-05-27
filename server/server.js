@@ -19,7 +19,10 @@ const allowedOrigins = [
   'http://127.0.0.1:5174'
 ].filter(Boolean);
 const io = new Server(server, {
-  cors: { origin: allowedOrigins, credentials: true }
+  cors: { 
+    origin: (origin) => true, // Allow all origins in production
+    credentials: true 
+  }
 });
 
 initSocket(io);

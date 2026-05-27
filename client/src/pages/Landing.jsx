@@ -61,7 +61,7 @@ const workflow = [
 export default function Landing() {
   return (
     <div className="space-y-24">
-      <section className="grid min-h-[680px] items-center gap-14 py-16 lg:grid-cols-[minmax(0,1fr)_460px] lg:py-20">
+      <section className="grid min-h-[680px] items-center gap-14 py-16 lg:grid-cols-[minmax(0,1fr)_460px] lg:py-4">
         <div>
           <p className="inline-flex items-center rounded-full border border-green-200 bg-white px-3 py-1 text-sm font-medium text-green-800">
             Animal rescue response platform

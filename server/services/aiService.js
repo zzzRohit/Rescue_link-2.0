@@ -2,6 +2,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const fallbackModel = 'google/gemini-2.0-flash-001';
+const normalizeModel = (model) => (
+  model === 'google/gemini-flash-latest' ? fallbackModel : model
+);
+
 const SYSTEM_PROMPT = `You are an AI animal emergency triage system for RescueLink, an animal rescue platform in India.
 
 Analyze the animal emergency report and respond ONLY with a valid JSON object in this exact format, no markdown, no extra text:
@@ -42,7 +47,7 @@ Description: ${description}
 Analyze this animal emergency and return the JSON triage result.`
     });
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const requestOpenRouter = (model) => fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -51,7 +56,7 @@ Analyze this animal emergency and return the JSON triage result.`
         'X-Title': 'RescueLink'
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || 'google/gemini-flash-latest',
+        model,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content }
@@ -61,9 +66,17 @@ Analyze this animal emergency and return the JSON triage result.`
       })
     });
 
+    const configuredModel = normalizeModel(process.env.OPENROUTER_MODEL || fallbackModel);
+    let response = await requestOpenRouter(configuredModel);
+    if (!response.ok && configuredModel !== fallbackModel) {
+      const errText = await response.text();
+      console.error(`OpenRouter error for ${configuredModel}:`, errText);
+      response = await requestOpenRouter(fallbackModel);
+    }
+
     if (!response.ok) {
       const errText = await response.text();
-      console.error('OpenRouter error:', errText);
+      console.error(`OpenRouter error for ${fallbackModel}:`, errText);
       return null;
     }
 

@@ -109,8 +109,55 @@ export const verifyRescuer = async (req, res, next) => {
   }
 };
 
+export const getAdminRescuers = async (req, res, next) => {
+  try {
+    if (!verifyAdminKey(req, res)) return;
+    const rescuers = await Rescuer.find()
+      .select('-password')
+      .sort({ verified: 1, createdAt: -1, name: 1 });
+    res.json(rescuers);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createAdminRescuer = async (req, res, next) => {
+  try {
+    if (!verifyAdminKey(req, res)) return;
+    const { name, email, password, phone, whatsapp, city, specialties, available24hr, address, lat, lng, type = 'contact', verified = true } = req.body;
+    if (!city && (typeof lat !== 'number' || typeof lng !== 'number')) {
+      return res.status(400).json({ message: 'Enter a city or location coordinates.' });
+    }
+    if (type === 'platform' && (!email || !password)) {
+      return res.status(400).json({ message: 'Email and password are required for login-enabled rescuers.' });
+    }
+
+    const rescuer = await Rescuer.create({
+      name,
+      email: email || undefined,
+      password: password || undefined,
+      phone,
+      whatsapp,
+      city: city ? String(city).toLowerCase().trim() : undefined,
+      specialties: specialties?.length ? specialties : ['all'],
+      available24hr: Boolean(available24hr),
+      address,
+      lat: typeof lat === 'number' ? lat : undefined,
+      lng: typeof lng === 'number' ? lng : undefined,
+      type,
+      verified: Boolean(verified)
+    });
+
+    res.status(201).json(rescuer);
+  } catch (err) {
+    if (err.code === 11000) err.status = 409;
+    next(err);
+  }
+};
+
 export const getPendingRescuers = async (req, res, next) => {
   try {
+    if (!verifyAdminKey(req, res)) return;
     const rescuers = await Rescuer.find({ type: 'platform', verified: false })
       .select('-password')
       .sort({ createdAt: -1 });

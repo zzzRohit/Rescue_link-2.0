@@ -1,9 +1,11 @@
 import Incident from '../models/Incident.js';
+import mongoose from 'mongoose';
 import Rescuer from '../models/Rescuer.js';
 import { analyzeIncident } from '../services/aiService.js';
 import { classifyAnimal, getRoutingMessage } from '../services/animalRouting.js';
 import { findNearestRescuer } from '../services/matchRescuer.js';
 import { getWildlifeContacts } from '../data/wildlifeContacts.js';
+import { normalizeCity, serviceAreaCities } from '../utils/city.js';
 
 const statusOrder = ['pending', 'accepted', 'on_the_way', 'rescued', 'closed'];
 const validCloudinaryUrls = (urls = []) => urls.every((url) => /^https:\/\/res\.cloudinary\.com\//.test(url));
@@ -20,7 +22,7 @@ export const createIncident = async (req, res, next) => {
       emergencyCategory,
       description,
       images,
-      location: { ...location, city: location.city?.toLowerCase() },
+      location: { ...location, city: normalizeCity(location.city) },
       reportedBy: { ...reportedBy, userId: req.user?._id },
       routingType,
       authorityContacts
@@ -71,7 +73,7 @@ export const createQuickIncident = async (req, res, next) => {
       emergencyCategory,
       description: 'Quick report - no additional details provided',
       images: imageUrl ? [imageUrl] : [],
-      location: { ...location, city: location.city?.toLowerCase() },
+      location: { ...location, city: normalizeCity(location.city) },
       reportedBy: { phone, userId: req.user?._id },
       routingType,
       authorityContacts,
@@ -119,10 +121,8 @@ export const getIncidents = async (req, res, next) => {
     if (req.user?.role === 'rescuer') {
       if (!req.user.verified) return res.status(403).json({ error: 'pending_verification', message: 'Your account is pending admin verification.' });
       query.routingType = { $ne: 'authority' };
-      query.$or = [
-        { assignedRescuer: req.user._id }
-      ];
-      if (req.user.city) query.$or.push({ 'location.city': req.user.city });
+      const cities = serviceAreaCities(req.user.city);
+      query['location.city'] = cities.length ? { $in: cities } : req.user.city;
     }
     if (req.user?.role === 'citizen') {
       if (req.query.userId && String(req.query.userId) !== String(req.user._id)) {
@@ -139,12 +139,14 @@ export const getIncidents = async (req, res, next) => {
 
 export const getIncidentById = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: 'Incident not found' });
+    }
     const incident = await Incident.findById(req.params.id).populate('assignedRescuer', 'name phone specialties city');
     if (!incident) return res.status(404).json({ message: 'Incident not found' });
     const nearbyRescuers = incident.routingType !== 'authority' && incident.location?.city
       ? await Rescuer.find({
-        city: incident.location.city,
-        type: 'contact',
+        city: { $in: serviceAreaCities(incident.location.city) },
         verified: true
       }).select('name phone whatsapp specialties available24hr address lat lng').limit(5)
       : [];
@@ -159,7 +161,7 @@ export const getIncidentById = async (req, res, next) => {
 
 export const updateStatus = async (req, res, next) => {
   try {
-    const incident = await Incident.findById(req.params.id).populate('assignedRescuer', 'name');
+    const incident = await Incident.findById(req.params.id).populate('assignedRescuer', 'name phone specialties city');
     if (!incident) return res.status(404).json({ message: 'Incident not found' });
     if (incident.routingType === 'authority') {
       return res.status(400).json({ message: 'Authority incidents cannot be updated by local rescuers' });
@@ -175,6 +177,7 @@ export const updateStatus = async (req, res, next) => {
     incident.rescueProofImage = req.body.rescueProofImage ?? incident.rescueProofImage;
     if (!incident.assignedRescuer) incident.assignedRescuer = req.user._id;
     await incident.save();
+    await incident.populate('assignedRescuer', 'name phone specialties city');
     if (incident.reportedBy?.userId) {
       req.app.get('io')?.to(`user:${incident.reportedBy.userId}`).emit('status_updated', {
         incidentId: incident._id,
