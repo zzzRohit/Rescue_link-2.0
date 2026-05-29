@@ -8,6 +8,21 @@ const fileToDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const serverUpload = async (files) => {
+  const images = await Promise.all(files.map(fileToDataUrl));
+  const res = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL || "https://rescue-link-backend.onrender.com"}/api/uploads/images`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    },
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || "Image upload failed");
+  return data.urls || [];
+};
+
 export const useCloudinaryUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -20,19 +35,9 @@ export const useCloudinaryUpload = () => {
     setError("");
     try {
       if (!cloud || !preset) {
-        const images = await Promise.all(files.map(fileToDataUrl));
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL || "https://rescue-link-backend.onrender.com"}/api/uploads/images`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ images }),
-          },
-        );
-        if (!res.ok) throw new Error("Image upload failed");
-        const data = await res.json();
+        const urls = await serverUpload(files);
         setProgress(100);
-        return data.urls || [];
+        return urls;
       }
 
       const urls = [];
@@ -45,7 +50,12 @@ export const useCloudinaryUpload = () => {
           `https://api.cloudinary.com/v1_1/${cloud}/image/upload`,
           { method: "POST", body: form },
         );
-        if (!res.ok) throw new Error("Image upload failed");
+        if (!res.ok) {
+          const fallbackUrls = await serverUpload(files.slice(i));
+          urls.push(...fallbackUrls);
+          setProgress(100);
+          return urls;
+        }
         const data = await res.json();
         urls.push(data.secure_url);
         setProgress(Math.round(((i + 1) / files.length) * 100));
