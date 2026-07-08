@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-import { getOpenRouterModelCandidates } from '../utils/openRouter.js';
+import dotenv from "dotenv";
+import { getOpenRouterModelCandidates } from "../utils/openRouter.js";
 
 dotenv.config();
 
@@ -23,58 +23,66 @@ firstAidSteps: exactly 3-5 specific actionable steps. Never say "take care of it
 dangerWarnings: empty array [] if no danger. Flag venomous, aggressive, large, protected, or high-risk animals.
 Do NOT include text outside the JSON.`;
 
-export const analyzeIncident = async ({ animalType, emergencyCategory, description, imageUrls = [] }) => {
+export const analyzeIncident = async ({
+  animalType,
+  emergencyCategory,
+  description,
+  imageUrls = [],
+}) => {
   try {
     const content = [];
 
     for (const url of imageUrls.slice(0, 3)) {
       content.push({
-        type: 'image_url',
-        image_url: { url }
+        type: "image_url",
+        image_url: { url },
       });
     }
 
     content.push({
-      type: 'text',
+      type: "text",
       text: `Animal type: ${animalType}
 Emergency category: ${emergencyCategory}
 Description: ${description}
 
-Analyze this animal emergency and return the JSON triage result.`
+Analyze this animal emergency and return the JSON triage result.`,
     });
 
-    const requestOpenRouter = (model) => fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:5173',
-        'X-Title': 'RescueLink'
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content }
-        ],
-        max_tokens: 400,
-        temperature: 0.1
-      })
-    });
+    const requestOpenRouter = (model) =>
+      fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.CLIENT_URL || "http://localhost:5173",
+          "X-Title": "RescueLink",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content },
+          ],
+          max_tokens: 400,
+          temperature: 0.1,
+        }),
+      });
 
-    const modelCandidates = getOpenRouterModelCandidates(process.env.OPENROUTER_MODEL);
+    const modelCandidates = getOpenRouterModelCandidates(
+      process.env.OPENROUTER_MODEL,
+    );
     let response;
-    let lastErrorText = '';
+    let lastErrorText = "";
 
     for (const model of modelCandidates) {
       response = await requestOpenRouter(model);
       if (response.ok) break;
-      lastErrorText = await response.text().catch(() => '');
+      lastErrorText = await response.text().catch(() => "");
       console.error(`OpenRouter error for ${model}:`, lastErrorText);
     }
 
     if (!response?.ok) {
-      if (lastErrorText) console.error('OpenRouter error:', lastErrorText);
+      if (lastErrorText) console.error("OpenRouter error:", lastErrorText);
       return null;
     }
 
@@ -82,13 +90,13 @@ Analyze this animal emergency and return the JSON triage result.`
     const raw = data.choices?.[0]?.message?.content;
     if (!raw) return null;
 
-    const clean = raw.replace(/```json|```/g, '').trim();
+    const clean = raw.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
     if (!parsed.severity || !parsed.rescuePriority) return null;
 
     return parsed;
   } catch (err) {
-    console.error('AI analysis failed:', err.message);
+    console.error("AI analysis failed:", err.message);
     return null;
   }
 };
