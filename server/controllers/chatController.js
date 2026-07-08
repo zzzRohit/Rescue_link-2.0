@@ -1,10 +1,7 @@
 import { CHAT_SYSTEM_PROMPT } from '../prompts/chatSystemPrompt.js';
+import { getOpenRouterModelCandidates } from '../utils/openRouter.js';
 
 const defaultChips = ['Show me step-by-step', 'Can I feed it?', 'Find a rescuer near me'];
-const fallbackModel = 'google/gemini-2.0-flash-001';
-const normalizeModel = (model) => (
-  model === 'google/gemini-flash-latest' ? fallbackModel : model
-);
 
 const cleanHistory = (history = []) => history
   .filter((message) => ['user', 'assistant'].includes(message.role) && message.content)
@@ -77,17 +74,19 @@ export const chat = async (req, res) => {
       })
     });
 
-    const configuredModel = normalizeModel(process.env.OPENROUTER_MODEL || fallbackModel);
-    let response = await requestOpenRouter(configuredModel);
-    if (!response.ok && configuredModel !== fallbackModel) {
-      const errText = await response.text();
-      console.error(`OpenRouter chat error for ${configuredModel}:`, errText);
-      response = await requestOpenRouter(fallbackModel);
+    const modelCandidates = getOpenRouterModelCandidates(process.env.OPENROUTER_MODEL);
+    let response;
+    let lastErrorText = '';
+
+    for (const model of modelCandidates) {
+      response = await requestOpenRouter(model);
+      if (response.ok && response.body) break;
+      lastErrorText = await response.text().catch(() => '');
+      console.error(`OpenRouter chat error for ${model}:`, lastErrorText);
     }
 
-    if (!response.ok || !response.body) {
-      const errText = await response.text().catch(() => '');
-      if (errText) console.error(`OpenRouter chat error for ${fallbackModel}:`, errText);
+    if (!response?.ok || !response.body) {
+      if (lastErrorText) console.error('OpenRouter chat error:', lastErrorText);
       sendEvent(res, { error: 'Something went wrong. Try again.' });
       return res.end();
     }

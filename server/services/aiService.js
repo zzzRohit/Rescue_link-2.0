@@ -1,11 +1,7 @@
 import dotenv from 'dotenv';
+import { getOpenRouterModelCandidates } from '../utils/openRouter.js';
 
 dotenv.config();
-
-const fallbackModel = 'google/gemini-2.0-flash-001';
-const normalizeModel = (model) => (
-  model === 'google/gemini-flash-latest' ? fallbackModel : model
-);
 
 const SYSTEM_PROMPT = `You are an AI animal emergency triage system for RescueLink, an animal rescue platform in India.
 
@@ -66,17 +62,19 @@ Analyze this animal emergency and return the JSON triage result.`
       })
     });
 
-    const configuredModel = normalizeModel(process.env.OPENROUTER_MODEL || fallbackModel);
-    let response = await requestOpenRouter(configuredModel);
-    if (!response.ok && configuredModel !== fallbackModel) {
-      const errText = await response.text();
-      console.error(`OpenRouter error for ${configuredModel}:`, errText);
-      response = await requestOpenRouter(fallbackModel);
+    const modelCandidates = getOpenRouterModelCandidates(process.env.OPENROUTER_MODEL);
+    let response;
+    let lastErrorText = '';
+
+    for (const model of modelCandidates) {
+      response = await requestOpenRouter(model);
+      if (response.ok) break;
+      lastErrorText = await response.text().catch(() => '');
+      console.error(`OpenRouter error for ${model}:`, lastErrorText);
     }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`OpenRouter error for ${fallbackModel}:`, errText);
+    if (!response?.ok) {
+      if (lastErrorText) console.error('OpenRouter error:', lastErrorText);
       return null;
     }
 
