@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node data/seed.js"
+    "seed": "node data/seed.js",
+    "seed:karnataka": "node data/seedKarnatakaContacts.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

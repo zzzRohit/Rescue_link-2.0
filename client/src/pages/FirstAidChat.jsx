@@ -70,7 +70,7 @@ export default function FirstAidChat() {
   );
 
   return (
-    <div className="fixed inset-0 bg-[#F9FAF7] md:static md:mx-auto md:flex md:h-[calc(100vh-137px)] md:max-w-6xl md:overflow-hidden md:rounded-2xl md:border md:border-gray-100 md:bg-white md:shadow-sm">
+    <div className="min-h-screen bg-[#F9FAF7] md:mx-auto md:flex md:h-[calc(100vh-137px)] md:max-w-6xl md:overflow-hidden md:rounded-2xl md:border md:border-gray-100 md:bg-white md:shadow-sm">
       <aside className="hidden w-[280px] shrink-0 border-r border-gray-100 bg-white p-5 md:flex md:flex-col">
         <h2 className="text-sm font-medium text-gray-900">Animal type</h2>
         <div className="mt-3">{animalPills}</div>

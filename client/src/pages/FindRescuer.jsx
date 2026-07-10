@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { AlertTriangle, MapPin, Phone, Search } from 'lucide-react';
 import { api } from '../services/api';
 
-const cities = ['bangalore', 'mysore', 'hubli', 'dharwad', 'mangalore', 'bellary', 'davangere', 'shimoga'];
+const cities = ['bangalore', 'mysore', 'hubli', 'dharwad', 'mangalore', 'belagavi', 'chikkamagaluru', 'madikeri', 'bellary', 'davangere', 'shimoga'];
 const filters = ['all', 'animal rescuer', 'ngo volunteer', 'veterinary support', 'wildlife specialist', 'emergency responder', '24hr only'];
 const nationalHelplines = [
   { name: 'Animal rescue helpline', phone: '112' },
@@ -57,6 +57,8 @@ export default function FindRescuer() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [rescuers, setRescuers] = useState([]);
   const [selectedId, setSelectedId] = useState('');
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [rescuersLoading, setRescuersLoading] = useState(false);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -82,15 +84,19 @@ export default function FindRescuer() {
       } catch {
         setLocationDenied(true);
         setDetectedText('Select your city to find nearby rescuers.');
+      } finally {
+        setLocationLoading(false);
       }
     }, () => {
       setLocationDenied(true);
       setDetectedText('Location access denied. Select your city to continue.');
+      setLocationLoading(false);
     }, { enableHighAccuracy: false, timeout: 8000 });
   }, []);
 
   useEffect(() => {
     if (!city) return;
+    setRescuersLoading(true);
     const specialtyMap = {
       'animal rescuer': 'mammals',
       'ngo volunteer': 'all',
@@ -103,7 +109,8 @@ export default function FindRescuer() {
     if (!['all', '24hr only'].includes(specialty)) params.specialty = specialty;
     api.get('/api/rescuers', { params })
       .then((res) => setRescuers(res.data))
-      .catch(() => setRescuers([]));
+      .catch(() => setRescuers([]))
+      .finally(() => setRescuersLoading(false));
   }, [city, activeFilter]);
 
   const visibleRescuers = useMemo(() => {
@@ -115,6 +122,7 @@ export default function FindRescuer() {
 
   const mappedRescuers = visibleRescuers.filter((rescuer) => Number.isFinite(rescuer.lat) && Number.isFinite(rescuer.lng));
   const center = mappedRescuers[0] ? [mappedRescuers[0].lat, mappedRescuers[0].lng] : [12.9716, 77.5946];
+  const loading = locationLoading || rescuersLoading;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -135,15 +143,24 @@ export default function FindRescuer() {
 
       <section className="mb-5 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         {city ? (
-          <MapContainer center={center} zoom={12} className="h-[200px] w-full md:h-[260px]" scrollWheelZoom={false}>
-            <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <FitMap rescuers={visibleRescuers} />
-            {mappedRescuers.map((rescuer) => (
-              <Marker key={rescuer._id} position={[rescuer.lat, rescuer.lng]} icon={pin(rescuer.available24hr)} eventHandlers={{ click: () => setSelectedId(rescuer._id) }}>
-                <Popup>{rescuer.name}</Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+          rescuersLoading ? (
+            <div className="flex h-[200px] flex-col items-center justify-center bg-[#F9FAF7] text-center md:h-[260px]">
+              <div className="flex h-20 w-20 flex-col items-center justify-center rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-3 h-3 w-24 rounded-full bg-gray-200 animate-pulse" />
+                <div className="h-3 w-16 rounded-full bg-gray-200 animate-pulse" />
+              </div>
+            </div>
+          ) : (
+            <MapContainer center={center} zoom={12} className="h-[200px] w-full md:h-[260px]" scrollWheelZoom={false}>
+              <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <FitMap rescuers={visibleRescuers} />
+              {mappedRescuers.map((rescuer) => (
+                <Marker key={rescuer._id} position={[rescuer.lat, rescuer.lng]} icon={pin(rescuer.available24hr)} eventHandlers={{ click: () => setSelectedId(rescuer._id) }}>
+                  <Popup>{rescuer.name}</Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          )
         ) : (
           <div className="flex h-[200px] flex-col items-center justify-center bg-[#F9FAF7] text-center md:h-[260px]">
             <MapPin className="mb-2 h-8 w-8 text-green-600" />
@@ -160,14 +177,57 @@ export default function FindRescuer() {
         ))}
       </div>
 
-      {city && visibleRescuers.length === 0 && (
+      {city && !loading && visibleRescuers.length === 0 && (
         <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-700">
           No local rescue contacts found for this filter. Use the helplines below or try another category.
         </div>
       )}
 
       <div className="grid gap-3">
-        {visibleRescuers.map((rescuer) => (
+        {(loading ? [1, 2, 3] : visibleRescuers).map((item) => (
+          loading ? (
+            <article key={`skeleton-${item}`} className="animate-pulse rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <div className="h-4 w-40 rounded-full bg-gray-200" />
+                  <div className="h-3 w-32 rounded-full bg-gray-200" />
+                  <div className="flex flex-wrap gap-1">
+                    <div className="h-6 w-16 rounded-full bg-gray-200" />
+                    <div className="h-6 w-16 rounded-full bg-gray-200" />
+                  </div>
+                </div>
+                <div className="h-3.5 w-3.5 rounded-full bg-gray-200" />
+              </div>
+              <div className="mt-4 flex gap-2">
+                <div className="h-10 w-24 rounded-lg bg-gray-200" />
+                <div className="h-10 w-20 rounded-lg bg-gray-200" />
+              </div>
+            </article>
+          ) : (
+            <article key={item._id} className={`rounded-2xl border bg-white p-4 shadow-sm transition ${selectedId === item._id ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-medium text-gray-950">{item.name}</h2>
+                    {item.available24hr && <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">24hr</span>}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-400">{item.address} · {item.available24hr ? 'Open 24 hours' : 'Day hours'}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {item.specialties?.map((specialty) => <span key={specialty} className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-700">{specialty}</span>)}
+                  </div>
+                </div>
+                <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.available24hr ? 'bg-green-500' : 'bg-gray-300'}`} />
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href={`tel:${item.phone}`} className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white">
+                  <Phone className="h-4 w-4" /> Call now
+                </a>
+                {item.whatsapp && <a href={`https://wa.me/${item.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600">WhatsApp</a>}
+              </div>
+            </article>
+          )
+        ))}
+      </div>
           <article key={rescuer._id} className={`rounded-2xl border bg-white p-4 shadow-sm transition ${selectedId === rescuer._id ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
