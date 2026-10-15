@@ -45,10 +45,11 @@ export const register = async (req, res, next) => {
         user: { ...rescuer.toJSON(), role: "rescuer" },
       });
     }
+    const normalizedEmail = String(email).trim().toLowerCase();
 
     const user = await User.create({
       name,
-      email,
+      email:normalizedEmail,
       password,
       role: "citizen",
       phone,
@@ -174,12 +175,9 @@ export const createAdminRescuer = async (req, res, next) => {
         .json({ message: "Enter a city or location coordinates." });
     }
     if (type === "platform" && (!email || !password)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Email and password are required for login-enabled rescuers.",
-        });
+      return res.status(400).json({
+        message: "Email and password are required for login-enabled rescuers.",
+      });
     }
 
     const rescuer = await Rescuer.create({
